@@ -1,5 +1,5 @@
 # twitter-clone
-MVP Twitter clone project. For now this only has a single backend, but in the future I'm going to add interoperable components in different languages/frameworks that can be used interchangeably.
+MVP Twitter clone project to perform CRUD commands. Features, like a login will be omitted. For now this only has a single backend, but in the future I'm going to add interoperable components in different languages/frameworks that can be used interchangeably.
 
 ## Stack
 - client Next.js using React.js

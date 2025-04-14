@@ -27,9 +27,9 @@ func main() {
     router.PUT("/users/:user_id", routes.UpdateUser(db));
     router.DELETE("/users/:user_id", routes.DeleteUser(db));
 
-    // // follows routes
-    // router.POST("/users/:user_id/follows/:following_id", routes.FollowUser);
-    // router.DELETE("/users/:user_id/follows/:following_id", routes.UnFollowUser);
+    // follows routes
+    router.POST("/users/:user_id/follows/:follow_id", routes.FollowUser(db));
+    router.DELETE("/users/:user_id/follows/:follow_id", routes.UnFollowUser(db));
 
     // // tweets routes
     // router.GET("/users/:user_id/tweets", routes.GetTweet); 

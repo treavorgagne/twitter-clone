@@ -20,13 +20,13 @@ CREATE TABLE users (
 
 -- follows
 CREATE TABLE follows (
-   following_user_id BIGINT NOT NULL COMMENT "unique id for user that is following the follower",
-   follower_user_id BIGINT NOT NULL COMMENT "unique id for user of ther user being followed",
+   user_id BIGINT NOT NULL COMMENT "unique id the person whos following another user",
+   follow_id BIGINT NOT NULL COMMENT "unique id of the user being followed",
    created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT "date when user was followed the other user",
-   PRIMARY KEY (following_user_id, follower_user_id),
-   FOREIGN KEY(following_user_id) references users(user_id) ON DELETE CASCADE,
-   FOREIGN KEY(follower_user_id) references users(user_id) ON DELETE CASCADE,
-  	CHECK (following_user_id <> follower_user_id)
+   PRIMARY KEY (user_id, follow_id),
+   FOREIGN KEY(user_id) references users(user_id) ON DELETE CASCADE,
+   FOREIGN KEY(follow_id) references users(user_id) ON DELETE CASCADE,
+  	CHECK (user_id <> follow_id)
 );
 
 -- user counts
@@ -40,17 +40,17 @@ SELECT
 FROM users u
 LEFT JOIN (
    SELECT
-       follower_user_id AS user_id,
+       user_id,
        COUNT(*) AS total_followers
    FROM follows
-   GROUP BY follower_user_id
+   GROUP BY user_id
 ) AS followers ON u.user_id = followers.user_id
 LEFT JOIN (
    SELECT
-       following_user_id AS user_id,
+       follow_id AS user_id,
        COUNT(*) AS total_following
    FROM follows
-   GROUP BY following_user_id
+   GROUP BY follow_id
 ) AS following ON u.user_id = following.user_id;
 
 -- tweets
@@ -131,7 +131,7 @@ LEFT JOIN (
 
 -- run optional to populate data
 insert into users (username) values ("tmoney"), ("tdawg"), ("tbone");
-insert into follows (following_user_id, follower_user_id) values (1,2), (1,3), (2,1), (2,3), (3,1), (3,2);
+insert into follows (user_id, follow_id) values (1,2), (1,3), (2,1), (2,3), (3,1), (3,2);
 insert into tweets (body, user_id) values ("tmoney's first tweet", 1), ("tdawg's first tweet", 2), ("tbone's first tweet", 1);
 insert into likes_tweets (tweet_id, user_id) values (1, 2), (1, 3), (2,1), (2,3), (3,1), (3,2);
 insert into comments (tweet_id, body, user_id) values (1, "nice post", 3), (2, "nice post", 1), (3, "nice post", 2);
