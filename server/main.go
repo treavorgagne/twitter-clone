@@ -29,6 +29,7 @@ func main() {
     router.DELETE("/users/:user_id/follows/:following_id", routes.UnFollowUser);
 
     // tweets routes
+    router.GET("/users/:user_id/tweets", routes.GetTweet); 
     router.POST("/users/:user_id/tweets", routes.CreateTweet);
     router.DELETE("/users/:user_id/tweets/:tweet_id", routes.DeleteTweet);
     router.POST("/users/:user_id/tweets/:tweet_id/like", routes.LikeTweet);

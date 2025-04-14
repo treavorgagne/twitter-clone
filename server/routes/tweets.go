@@ -6,6 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func GetTweet(c *gin.Context) {
+	c.Status(http.StatusNotImplemented) // 501 Not Implemented
+}
 
 func CreateTweet(c *gin.Context) {
 	c.Status(http.StatusNotImplemented) // 501 Not Implemented
