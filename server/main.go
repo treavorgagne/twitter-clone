@@ -32,11 +32,13 @@ func main() {
     router.DELETE("/users/:user_id/follows/:follow_id", routes.UnFollowUser(db));
 
     // // tweets routes
-    // router.GET("/users/:user_id/tweets", routes.GetTweet); 
-    // router.POST("/users/:user_id/tweets", routes.CreateTweet);
-    // router.DELETE("/users/:user_id/tweets/:tweet_id", routes.DeleteTweet);
-    // router.POST("/users/:user_id/tweets/:tweet_id/like", routes.LikeTweet);
-    // router.DELETE("/users/:user_id/tweets/:tweet_id/unlike", routes.UnLikeTweet);
+    router.GET("/tweets/:tweet_id", routes.GetTweet(db));
+    router.GET("/users/:user_id/tweets", routes.GetTweets(db));
+    router.POST("/users/:user_id/tweets", routes.CreateTweet(db));
+    router.PUT("/users/:user_id/tweets/:tweet_id", routes.UpdateTweet(db));
+    router.DELETE("/users/:user_id/tweets/:tweet_id", routes.DeleteTweet(db));
+    router.POST("/users/:user_id/tweets/:tweet_id/likes", routes.LikeTweet(db));
+    router.DELETE("/users/:user_id/tweets/:tweet_id/unlikes", routes.UnLikeTweet(db));
 
     // // comments routes
     // router.POST("/users/:user_id/tweets/:tweet_id/comment", routes.CreateComment);

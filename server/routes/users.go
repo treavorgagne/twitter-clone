@@ -40,7 +40,7 @@ func CreateUser(db *sql.DB) gin.HandlerFunc {
 
 		_, err := db.Exec("insert into users (username) values (?);", req.Username)
 		if err != nil {
-			log.Panic("ERROR_GETTING_USER_DATA: ", err)
+			log.Panic("ERROR_CREATING_USER_DATA: ", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 			return
 		}
