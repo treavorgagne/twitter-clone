@@ -3,8 +3,8 @@ use twitter;
 DROP VIEW IF EXISTS users_stats;
 DROP VIEW IF EXISTS tweets_stats;
 DROP VIEW IF EXISTS comments_stats;
-DROP TABLE IF EXISTS likes_comments;
-DROP TABLE IF EXISTS likes_tweets;
+DROP TABLE IF EXISTS likes_comment;
+DROP TABLE IF EXISTS likes_tweet;
 DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS tweets;
 DROP TABLE IF EXISTS follows;
@@ -36,22 +36,22 @@ SELECT
    u.username,
    u.created_at,
    IFNULL(followers.total_followers, 0) AS total_followers,
-   IFNULL(following.total_following, 0) AS total_following
+   IFNULL(following.following_total, 0) AS following_total
 FROM users u
 LEFT JOIN (
    SELECT
-       user_id,
-       COUNT(*) AS total_followers
+      user_id,
+      COUNT(*) AS following_total
    FROM follows
    GROUP BY user_id
-) AS followers ON u.user_id = followers.user_id
+) AS following ON u.user_id = following.user_id
 LEFT JOIN (
    SELECT
-       follow_id AS user_id,
-       COUNT(*) AS total_following
+      follow_id AS user_id,
+      COUNT(*) AS total_followers
    FROM follows
    GROUP BY follow_id
-) AS following ON u.user_id = following.user_id;
+) AS followers ON u.user_id = followers.user_id;
 
 -- tweets
 CREATE TABLE tweets (
@@ -63,8 +63,8 @@ CREATE TABLE tweets (
 	FOREIGN KEY(user_id) references users(user_id) ON DELETE CASCADE
 );
 
--- likes_tweets
-CREATE TABLE likes_tweets (
+-- likes_tweet
+CREATE TABLE likes_tweet (
 	tweet_id BIGINT NOT NULL COMMENT "unique id for the tweet being liked",
 	user_id BIGINT NOT NULL COMMENT "unique id of the user liking the tweet",
    PRIMARY KEY (tweet_id, user_id),
@@ -83,9 +83,9 @@ SELECT
 FROM tweets t
 LEFT JOIN (
    SELECT
-       tweet_id,
-       COUNT(*) AS tweet_total_likes
-   FROM likes_tweets
+      tweet_id,
+      COUNT(*) AS tweet_total_likes
+   FROM likes_tweet
    GROUP BY tweet_id
 ) AS likes_count ON t.tweet_id = likes_count.tweet_id;
 
@@ -101,8 +101,8 @@ CREATE TABLE comments (
    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- likes_comments
-CREATE TABLE likes_comments (
+-- likes_comment
+CREATE TABLE likes_comment (
 	comment_id BIGINT NOT NULL COMMENT "unique id for the comment being liked",
 	user_id BIGINT NOT NULL COMMENT "unique id of the user liking the tweet comment",
    PRIMARY KEY (comment_id, user_id),
@@ -123,9 +123,9 @@ SELECT
 FROM comments c
 LEFT JOIN (
    SELECT
-       comment_id,
-       COUNT(*) AS comment_total_likes
-   FROM likes_comments
+      comment_id,
+      COUNT(*) AS comment_total_likes
+   FROM likes_comment
    GROUP BY comment_id
 ) AS likes_count ON c.comment_id = likes_count.comment_id;
 
@@ -133,6 +133,6 @@ LEFT JOIN (
 insert into users (username) values ("tmoney"), ("tdawg"), ("tbone");
 insert into follows (user_id, follow_id) values (1,2), (1,3), (2,1), (2,3), (3,1), (3,2);
 insert into tweets (body, user_id) values ("tmoney's first tweet", 1), ("tdawg's first tweet", 2), ("tbone's first tweet", 1);
-insert into likes_tweets (tweet_id, user_id) values (1, 2), (1, 3), (2,1), (2,3), (3,1), (3,2);
+insert into likes_tweet (tweet_id, user_id) values (1, 2), (1, 3), (2,1), (2,3), (3,1), (3,2);
 insert into comments (tweet_id, body, user_id) values (1, "nice post", 3), (2, "nice post", 1), (3, "nice post", 2);
-insert into likes_comments (comment_id, user_id) values (1, 2), (2, 3), (3, 1);
+insert into likes_comment (comment_id, user_id) values (1, 2), (2, 3), (3, 1);

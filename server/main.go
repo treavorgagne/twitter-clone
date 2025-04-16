@@ -5,51 +5,51 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/treavorgagne/twitter-clone/server/db"
+	dbHelper "github.com/treavorgagne/twitter-clone/server/db"
 	"github.com/treavorgagne/twitter-clone/server/routes"
 )
 
+func HealthCheck(c *gin.Context) {
+    c.Status(http.StatusNoContent);
+}
+
 func main() {
-	var db, err = db.ConnectToDB()
-	if err != nil {
-		log.Fatal("ERROR_DB_CONNECTION", err)
-	}
+	db := dbHelper.ConfigDB()
+    defer db.Close()
+    log.Println("db connection pool opened")
 
     router := gin.Default()
     router.SetTrustedProxies(nil)
+    log.Println("started gin router")
 
     // healh route
     router.GET("/health", HealthCheck);
 
     // user routes
-    router.POST("/users", routes.CreateUser(db));
-    router.GET("/users/:user_id", routes.GetUser(db));
-    router.PUT("/users/:user_id", routes.UpdateUser(db));
-    router.DELETE("/users/:user_id", routes.DeleteUser(db));
+    router.POST("/users",               func(c *gin.Context) { routes.CreateUser(c, db)})
+    router.GET("/users/:user_id",       func(c *gin.Context) { routes.GetUser(c, db) })
+    router.PUT("/users/:user_id",       func(c *gin.Context) { routes.UpdateUser(c, db) });
+    router.DELETE("/users/:user_id",    func(c *gin.Context) { routes.DeleteUser(c, db) });
 
     // follows routes
-    router.POST("/users/:user_id/follows/:follow_id", routes.FollowUser(db));
-    router.DELETE("/users/:user_id/follows/:follow_id", routes.UnFollowUser(db));
+    router.POST("/users/:user_id/follows/:follow_id",       func(c *gin.Context) { routes.FollowUser(c, db) });
+    router.DELETE("/users/:user_id/follows/:follow_id",     func(c *gin.Context) { routes.UnFollowUser(c, db) });
 
-    // // tweets routes
-    router.GET("/tweets/:tweet_id", routes.GetTweet(db));
-    router.GET("/users/:user_id/tweets", routes.GetTweets(db));
-    router.POST("/users/:user_id/tweets", routes.CreateTweet(db));
-    router.PUT("/users/:user_id/tweets/:tweet_id", routes.UpdateTweet(db));
-    router.DELETE("/users/:user_id/tweets/:tweet_id", routes.DeleteTweet(db));
-    router.POST("/users/:user_id/tweets/:tweet_id/likes", routes.LikeTweet(db));
-    router.DELETE("/users/:user_id/tweets/:tweet_id/unlikes", routes.UnLikeTweet(db));
+    // tweets routes
+    router.GET("/tweets/:tweet_id",                             func(c *gin.Context) { routes.GetTweet(c, db) });
+    router.GET("/users/:user_id/tweets",                        func(c *gin.Context) { routes.GetTweets(c, db) });
+    router.POST("/users/:user_id/tweets",                       func(c *gin.Context) { routes.CreateTweet(c, db) });
+    router.PUT("/users/:user_id/tweets/:tweet_id",              func(c *gin.Context) { routes.UpdateTweet(c, db) });
+    router.DELETE("/users/:user_id/tweets/:tweet_id",           func(c *gin.Context) { routes.DeleteTweet(c, db) });
+    router.POST("/users/:user_id/tweets/:tweet_id/likes",       func(c *gin.Context) { routes.LikeTweet(c, db) });
+    router.DELETE("/users/:user_id/tweets/:tweet_id/unlikes",   func(c *gin.Context) { routes.UnLikeTweet(c, db) });
 
     // // comments routes
-    // router.POST("/users/:user_id/tweets/:tweet_id/comment", routes.CreateComment);
-    // router.DELETE("/users/:user_id/tweets/:tweet_id/comment/:comment_id", routes.DeleteComment);
-    // router.POST("/users/:user_id/tweets/:tweet_id/comment/:comment_id/like", routes.LikeComment);
-    // router.DELETE("/users/:user_id/tweets/:tweet_id/comment/:comment_id/unlike", routes.UnLikeComment);
+    router.POST("/users/:user_id/tweets/:tweet_id/comment",       func(c *gin.Context) { routes.CreateComment(c, db) });
+    router.PUT("comment/:comment_id",                             func(c *gin.Context) { routes.UpdateComment(c, db) });
+    router.DELETE("/comment/:comment_id",                         func(c *gin.Context) { routes.DeleteComment(c, db) });
+    router.POST("/users/:user_id/comment/:comment_id/like",       func(c *gin.Context) { routes.LikeComment(c, db) });
+    router.DELETE("/users/:user_id/comment/:comment_id/unlike",   func(c *gin.Context) { routes.UnLikeComment(c, db) });
 
     router.Run("localhost:8080")
-
-}
-
-func HealthCheck(c *gin.Context) {
-    c.Status(http.StatusNoContent);
 }

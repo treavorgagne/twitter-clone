@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"os"
@@ -9,7 +10,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func ConnectToDB() (*sql.DB, error) {
+func ConfigDB() (*sql.DB) {
 	if godotenv.Load() != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -25,5 +26,9 @@ func ConnectToDB() (*sql.DB, error) {
     if err != nil {
 		log.Fatal("DB_CONNECTION_FAILED", "unable to get database connection")
 	}
-    return db, err
+    return db
+}
+
+func GetDBConn(db *sql.DB) (*sql.Conn, error) {
+	return db.Conn(context.Background())
 }
