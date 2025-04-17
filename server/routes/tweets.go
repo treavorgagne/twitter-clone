@@ -43,7 +43,7 @@ func GetTweet(c *gin.Context, db *sql.DB, rdb *redis.Client) {
 		log.Println("Failed to marshal user:", err)
 	} else {
 		cacheKey := c.Request.URL.Path
-		err := rdb.Set(c, cacheKey, tweetJSON, 5*time.Minute).Err()
+		err := rdb.SetNX(c, cacheKey, tweetJSON, 3*time.Minute).Err()
 		if err != nil {
 			log.Println("Redis cache SET error:", err)
 		}
@@ -91,7 +91,7 @@ func GetTweets(c *gin.Context, db *sql.DB, rdb *redis.Client) {
 		log.Println("Failed to marshal user:", err)
 	} else {
 		cacheKey := c.Request.URL.Path
-		err := rdb.Set(c, cacheKey, tweetsJSON, 5*time.Minute).Err()
+		err := rdb.SetNX(c, cacheKey, tweetsJSON, 3*time.Minute).Err()
 		if err != nil {
 			log.Println("Redis cache SET error:", err)
 		}

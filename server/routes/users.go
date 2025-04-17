@@ -41,7 +41,7 @@ func GetUser(c *gin.Context, db *sql.DB, rdb *redis.Client) {
 		log.Println("Failed to marshal user:", err)
 	} else {
 		cacheKey := c.Request.URL.Path
-		err := rdb.Set(c, cacheKey, userJSON, 5*time.Minute).Err()
+		err := rdb.SetNX(c, cacheKey, userJSON, 3*time.Minute).Err()
 		if err != nil {
 			log.Println("Redis cache SET error:", err)
 		}

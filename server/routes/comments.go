@@ -43,7 +43,7 @@ func GetComment(c *gin.Context, db *sql.DB, rdb *redis.Client) {
 		log.Println("Failed to marshal user:", err)
 	} else {
 		cacheKey := c.Request.URL.Path
-		err := rdb.Set(c, cacheKey, commentJSON, 5*time.Minute).Err()
+		err := rdb.SetNX(c, cacheKey, commentJSON, 3*time.Minute).Err()
 		if err != nil {
 			log.Println("Redis cache SET error:", err)
 		}
@@ -91,7 +91,7 @@ func GetCommentsByTweetId(c *gin.Context, db *sql.DB, rdb *redis.Client) {
 		log.Println("Failed to marshal user:", err)
 	} else {
 		cacheKey := c.Request.URL.Path
-		err := rdb.Set(c, cacheKey, commentsJSON, 5*time.Minute).Err()
+		err := rdb.SetNX(c, cacheKey, commentsJSON, 3*time.Minute).Err()
 		if err != nil {
 			log.Println("Redis cache SET error:", err)
 		}
