@@ -2,15 +2,18 @@ package routes
 
 import (
 	"database/sql"
+	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	dbHelper "github.com/treavorgagne/twitter-clone/server/db"
 	"github.com/treavorgagne/twitter-clone/server/models"
 )
 
-func GetTweet(c *gin.Context, db *sql.DB) {
+func GetTweet(c *gin.Context, db *sql.DB, rdb *redis.Client) {
 	// get db connection and release it when the transaction is complete
 	conn, err := dbHelper.GetDBConn(db)
 	if err != nil {
@@ -23,7 +26,7 @@ func GetTweet(c *gin.Context, db *sql.DB) {
 	var tweet models.GetTweetsResponse
 
 	row := conn.QueryRowContext(c.Request.Context(), "select * from tweets_stats where tweet_id = ?;", tweet_id)
-	err = row.Scan(&tweet.User_id, &tweet.Body, &tweet.User_id, &tweet.Created_At, &tweet.Tweet_total_likes);
+	err = row.Scan(&tweet.Tweet_id, &tweet.Body, &tweet.User_id, &tweet.Created_At, &tweet.Tweet_total_likes);
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Tweet not found"})
 		return
@@ -33,10 +36,23 @@ func GetTweet(c *gin.Context, db *sql.DB) {
 		return
 	}
 
+	// 🔥 Store into Redis cache
+	// 🧹 Marshal struct to JSON before caching
+	tweetJSON, err := json.Marshal(tweet)
+	if err != nil {
+		log.Println("Failed to marshal user:", err)
+	} else {
+		cacheKey := c.Request.URL.Path
+		err := rdb.Set(c, cacheKey, tweetJSON, 5*time.Minute).Err()
+		if err != nil {
+			log.Println("Redis cache SET error:", err)
+		}
+	}
+
 	c.JSON(http.StatusOK, tweet)
 }
 
-func GetTweets(c *gin.Context, db *sql.DB) {
+func GetTweets(c *gin.Context, db *sql.DB, rdb *redis.Client) {
 	// get db connection and release it when the transaction is complete
 	conn, err := dbHelper.GetDBConn(db)
 	if err != nil {
@@ -60,12 +76,25 @@ func GetTweets(c *gin.Context, db *sql.DB) {
 	var tweets []models.GetTweetsResponse
 	for rows.Next() {
 		var tweet models.GetTweetsResponse
-		if err := rows.Scan(&tweet.User_id, &tweet.Body, &tweet.User_id, &tweet.Created_At, &tweet.Tweet_total_likes); err != nil {
+		if err := rows.Scan(&tweet.Tweet_id, &tweet.Body, &tweet.User_id, &tweet.Created_At, &tweet.Tweet_total_likes); err != nil {
 			log.Printf("ERROR_SCANNING_TWEET_ROW: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error scanning tweet data"})
 			return
 		}
 		tweets = append(tweets, tweet)
+	}
+
+	// 🔥 Store into Redis cache
+	// 🧹 Marshal struct to JSON before caching
+	tweetsJSON, err := json.Marshal(tweets)
+	if err != nil {
+		log.Println("Failed to marshal user:", err)
+	} else {
+		cacheKey := c.Request.URL.Path
+		err := rdb.Set(c, cacheKey, tweetsJSON, 5*time.Minute).Err()
+		if err != nil {
+			log.Println("Redis cache SET error:", err)
+		}
 	}
 
 	c.JSON(http.StatusOK, tweets)

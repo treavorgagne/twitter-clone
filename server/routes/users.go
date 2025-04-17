@@ -2,15 +2,18 @@ package routes
 
 import (
 	"database/sql"
+	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	dbHelper "github.com/treavorgagne/twitter-clone/server/db"
 	"github.com/treavorgagne/twitter-clone/server/models"
 )
 
-func GetUser(c *gin.Context, db *sql.DB) {
+func GetUser(c *gin.Context, db *sql.DB, rdb *redis.Client) {
 	// get db connection and release it when the transaction is complete
 	conn, err := dbHelper.GetDBConn(db)
 	if err != nil {
@@ -29,6 +32,19 @@ func GetUser(c *gin.Context, db *sql.DB) {
 		log.Panic("ERROR_GETTING_USER_DATA: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 		return
+	}
+
+	// 🔥 Store into Redis cache
+	// 🧹 Marshal struct to JSON before caching
+	userJSON, err := json.Marshal(user)
+	if err != nil {
+		log.Println("Failed to marshal user:", err)
+	} else {
+		cacheKey := c.Request.URL.Path
+		err := rdb.Set(c, cacheKey, userJSON, 5*time.Minute).Err()
+		if err != nil {
+			log.Println("Redis cache SET error:", err)
+		}
 	}
 
 	c.JSON(http.StatusOK, user)

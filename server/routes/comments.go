@@ -2,14 +2,103 @@ package routes
 
 import (
 	"database/sql"
+	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	dbHelper "github.com/treavorgagne/twitter-clone/server/db"
 	"github.com/treavorgagne/twitter-clone/server/models"
 )
 
+func GetComment(c *gin.Context, db *sql.DB, rdb *redis.Client) {
+	// get db connection and release it when the transaction is complete
+	conn, err := dbHelper.GetDBConn(db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB connection error"})
+		return
+	}
+	defer conn.Close()
+
+	comment_id := c.Param("comment_id")
+	var comment models.GetCommentsResponse
+
+	row := conn.QueryRowContext(c.Request.Context(), "select * from comments_stats where comment_id = ?;", comment_id)
+	err = row.Scan(&comment.Comment_id, &comment.Tweet_id, &comment.Body, &comment.User_id, &comment.Created_At, &comment.Comment_total_likes);
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Comment not found"})
+		return
+	} else if err != nil {
+		log.Printf("ERROR_SCANNING_TWEET_ROW: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error scanning tweet data"})
+		return
+	}
+
+	// 🔥 Store into Redis cache
+	// 🧹 Marshal struct to JSON before caching
+	commentJSON, err := json.Marshal(comment)
+	if err != nil {
+		log.Println("Failed to marshal user:", err)
+	} else {
+		cacheKey := c.Request.URL.Path
+		err := rdb.Set(c, cacheKey, commentJSON, 5*time.Minute).Err()
+		if err != nil {
+			log.Println("Redis cache SET error:", err)
+		}
+	}
+
+	c.JSON(http.StatusOK, comment)
+}
+
+func GetCommentsByTweetId(c *gin.Context, db *sql.DB, rdb *redis.Client) {
+	// get db connection and release it when the transaction is complete
+	conn, err := dbHelper.GetDBConn(db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB connection error"})
+		return
+	}
+	defer conn.Close()
+	user_id := c.Param("tweet_id")
+
+	rows, err := conn.QueryContext(c.Request.Context(), "select * from comments_stats where tweet_id = ?;", user_id)
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No Comments found"})
+		return
+	} else if err != nil {
+		log.Panic("ERROR_GETTING_COMMENTS_DATA: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	defer rows.Close()
+	var comments []models.GetCommentsResponse
+	for rows.Next() {
+		var comment models.GetCommentsResponse
+		if err = rows.Scan(&comment.Comment_id, &comment.Tweet_id, &comment.Body, &comment.User_id, &comment.Created_At, &comment.Comment_total_likes); err != nil {
+			log.Printf("ERROR_SCANNING_TWEET_ROW: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error scanning tweet data"})
+			return
+		}
+		comments = append(comments, comment)
+	}
+
+	// 🔥 Store into Redis cache
+	// 🧹 Marshal struct to JSON before caching
+	commentsJSON, err := json.Marshal(comments)
+	if err != nil {
+		log.Println("Failed to marshal user:", err)
+	} else {
+		cacheKey := c.Request.URL.Path
+		err := rdb.Set(c, cacheKey, commentsJSON, 5*time.Minute).Err()
+		if err != nil {
+			log.Println("Redis cache SET error:", err)
+		}
+	}
+
+	c.JSON(http.StatusOK, comments)
+}
 
 func CreateComment(c *gin.Context, db *sql.DB) {
 	// get db connection and release it when the transaction is complete
