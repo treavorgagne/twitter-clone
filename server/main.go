@@ -32,33 +32,36 @@ func main() {
     // check cache
     router.Use(redis.CacheMiddleware(rdb))
 
+    // set new db connection
+    router.Use(dbHelper.GetDBConn(db))
+
     // user routes
-    router.POST("/users",               func(c *gin.Context) { routes.CreateUser(c, db)})
-    router.GET("/users/:user_id",       func(c *gin.Context) { routes.GetUser(c, db, rdb) })
-    router.PUT("/users/:user_id",       func(c *gin.Context) { routes.UpdateUser(c, db) });
-    router.DELETE("/users/:user_id",    func(c *gin.Context) { routes.DeleteUser(c, db) });
+    router.POST("/users", routes.CreateUser)
+    router.GET("/users/:user_id", routes.GetUser)
+    router.PUT("/users/:user_id", routes.UpdateUser);
+    router.DELETE("/users/:user_id", routes.DeleteUser);
 
     // follows routes
-    router.POST("/users/:user_id/follows/:follow_id",       func(c *gin.Context) { routes.FollowUser(c, db) });
-    router.DELETE("/users/:user_id/follows/:follow_id",     func(c *gin.Context) { routes.UnFollowUser(c, db) });
+    router.POST("/users/:user_id/follows/:follow_id", routes.FollowUser);
+    router.DELETE("/users/:user_id/follows/:follow_id", routes.UnFollowUser);
 
     // tweets routes
-    router.GET("/tweets/:tweet_id",                             func(c *gin.Context) { routes.GetTweet(c, db, rdb) });
-    router.GET("/users/:user_id/tweets",                        func(c *gin.Context) { routes.GetTweets(c, db, rdb) });
-    router.POST("/users/:user_id/tweets",                       func(c *gin.Context) { routes.CreateTweet(c, db) });
-    router.PUT("/users/:user_id/tweets/:tweet_id",              func(c *gin.Context) { routes.UpdateTweet(c, db) });
-    router.DELETE("/users/:user_id/tweets/:tweet_id",           func(c *gin.Context) { routes.DeleteTweet(c, db) });
-    router.POST("/users/:user_id/tweets/:tweet_id/likes",       func(c *gin.Context) { routes.LikeTweet(c, db) });
-    router.DELETE("/users/:user_id/tweets/:tweet_id/unlikes",   func(c *gin.Context) { routes.UnLikeTweet(c, db) });
+    router.GET("/tweets/:tweet_id", routes.GetTweet);
+    router.GET("/users/:user_id/tweets", routes.GetTweets);
+    router.POST("/users/:user_id/tweets", routes.CreateTweet);
+    router.PUT("/users/:user_id/tweets/:tweet_id", routes.UpdateTweet);
+    router.DELETE("/users/:user_id/tweets/:tweet_id", routes.DeleteTweet);
+    router.POST("/users/:user_id/tweets/:tweet_id/likes", routes.LikeTweet);
+    router.DELETE("/users/:user_id/tweets/:tweet_id/unlikes", routes.UnLikeTweet);
 
-    // // comments routes
-    router.GET("/tweets/:tweet_id/comments",                      func(c *gin.Context) { routes.GetCommentsByTweetId(c, db, rdb) });
-    router.POST("/users/:user_id/tweets/:tweet_id/comment",       func(c *gin.Context) { routes.CreateComment(c, db) });
-    router.GET("comment/:comment_id",                             func(c *gin.Context) { routes.GetComment(c, db, rdb) });
-    router.PUT("comment/:comment_id",                             func(c *gin.Context) { routes.UpdateComment(c, db) });
-    router.DELETE("/comment/:comment_id",                         func(c *gin.Context) { routes.DeleteComment(c, db) });
-    router.POST("/users/:user_id/comment/:comment_id/like",       func(c *gin.Context) { routes.LikeComment(c, db) });
-    router.DELETE("/users/:user_id/comment/:comment_id/unlike",   func(c *gin.Context) { routes.UnLikeComment(c, db) });
+    // comments routes
+    router.GET("/tweets/:tweet_id/comments", routes.GetCommentsByTweetId);
+    router.POST("/users/:user_id/tweets/:tweet_id/comment", routes.CreateComment);
+    router.GET("comment/:comment_id", routes.GetComment);
+    router.PUT("comment/:comment_id", routes.UpdateComment);
+    router.DELETE("/comment/:comment_id", routes.DeleteComment);
+    router.POST("/users/:user_id/comment/:comment_id/like", routes.LikeComment);
+    router.DELETE("/users/:user_id/comment/:comment_id/unlike", routes.UnLikeComment);
 
     router.Run("localhost:8080")
 }

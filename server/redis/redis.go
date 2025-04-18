@@ -27,6 +27,7 @@ func CacheMiddleware(rdb *redis.Client) gin.HandlerFunc {
 		val, err := rdb.Get(c, cacheKey).Result()
 		if err == redis.Nil { // Cache miss
 			log.Println("Redis miss. Storing key: ", cacheKey)
+			c.Set("rdb", rdb);
 			c.Next()
 		} else if err != nil { // Redis error
 			log.Println("Redis error:", err)

@@ -9,24 +9,23 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
-	dbHelper "github.com/treavorgagne/twitter-clone/server/db"
 	"github.com/treavorgagne/twitter-clone/server/models"
 )
 
-func GetTweet(c *gin.Context, db *sql.DB, rdb *redis.Client) {
+func GetTweet(c *gin.Context) {
 	// get db connection and release it when the transaction is complete
-	conn, err := dbHelper.GetDBConn(db)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB connection error"})
+	connRaw, exists := c.Get("conn")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB connection missing"})
 		return
 	}
-	defer conn.Close()
+	conn := connRaw.(*sql.Conn)
 
 	tweet_id := c.Param("tweet_id")
 	var tweet models.GetTweetsResponse
 
 	row := conn.QueryRowContext(c.Request.Context(), "select * from tweets_stats where tweet_id = ?;", tweet_id)
-	err = row.Scan(&tweet.Tweet_id, &tweet.Body, &tweet.User_id, &tweet.Created_At, &tweet.Tweet_total_likes);
+	err := row.Scan(&tweet.Tweet_id, &tweet.Body, &tweet.User_id, &tweet.Created_At, &tweet.Tweet_total_likes);
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Tweet not found"})
 		return
@@ -39,9 +38,11 @@ func GetTweet(c *gin.Context, db *sql.DB, rdb *redis.Client) {
 	// 🔥 Store into Redis cache
 	// 🧹 Marshal struct to JSON before caching
 	tweetJSON, err := json.Marshal(tweet)
+	rdbRaw, exists := c.Get("rdb")
 	if err != nil {
 		log.Println("Failed to marshal user:", err)
-	} else {
+	} else if(exists) {
+		rdb := rdbRaw.(*redis.Client)
 		cacheKey := c.Request.URL.Path
 		err := rdb.SetNX(c, cacheKey, tweetJSON, 3*time.Minute).Err()
 		if err != nil {
@@ -52,14 +53,15 @@ func GetTweet(c *gin.Context, db *sql.DB, rdb *redis.Client) {
 	c.JSON(http.StatusOK, tweet)
 }
 
-func GetTweets(c *gin.Context, db *sql.DB, rdb *redis.Client) {
+func GetTweets(c *gin.Context) {
 	// get db connection and release it when the transaction is complete
-	conn, err := dbHelper.GetDBConn(db)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB connection error"})
+	// get db connection and release it when the transaction is complete
+	connRaw, exists := c.Get("conn")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB connection missing"})
 		return
 	}
-	defer conn.Close()
+	conn := connRaw.(*sql.Conn)
 	user_id := c.Param("user_id")
 
 	rows, err := conn.QueryContext(c.Request.Context(), "select * from tweets_stats where user_id = ?;", user_id)
@@ -87,9 +89,11 @@ func GetTweets(c *gin.Context, db *sql.DB, rdb *redis.Client) {
 	// 🔥 Store into Redis cache
 	// 🧹 Marshal struct to JSON before caching
 	tweetsJSON, err := json.Marshal(tweets)
+	rdbRaw, exists := c.Get("rdb")
 	if err != nil {
 		log.Println("Failed to marshal user:", err)
-	} else {
+	} else if(exists) {
+		rdb := rdbRaw.(*redis.Client)
 		cacheKey := c.Request.URL.Path
 		err := rdb.SetNX(c, cacheKey, tweetsJSON, 3*time.Minute).Err()
 		if err != nil {
@@ -100,14 +104,14 @@ func GetTweets(c *gin.Context, db *sql.DB, rdb *redis.Client) {
 	c.JSON(http.StatusOK, tweets)
 }
 
-func CreateTweet(c *gin.Context, db *sql.DB) {
+func CreateTweet(c *gin.Context) {
 	// get db connection and release it when the transaction is complete
-	conn, err := dbHelper.GetDBConn(db)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB connection error"})
+	connRaw, exists := c.Get("conn")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB connection missing"})
 		return
 	}
-	defer conn.Close()
+	conn := connRaw.(*sql.Conn)
 	var req models.CreateTweetRequest
 	user_id := c.Param("user_id")
 	// Bind incoming JSON to the struct
@@ -116,7 +120,7 @@ func CreateTweet(c *gin.Context, db *sql.DB) {
 		return
 	}
 
-	_, err = conn.ExecContext(c.Request.Context(), "insert into tweets (body, user_id) values (?, ?);", req.Body, user_id)
+	_, err := conn.ExecContext(c.Request.Context(), "insert into tweets (body, user_id) values (?, ?);", req.Body, user_id)
 	if err != nil {
 		log.Panic("ERROR_CREATING_TWEET: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
@@ -126,14 +130,14 @@ func CreateTweet(c *gin.Context, db *sql.DB) {
 	c.Status(http.StatusCreated)
 }
 
-func UpdateTweet(c *gin.Context, db *sql.DB) {
+func UpdateTweet(c *gin.Context) {
 	// get db connection and release it when the transaction is complete
-	conn, err := dbHelper.GetDBConn(db)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB connection error"})
+	connRaw, exists := c.Get("conn")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB connection missing"})
 		return
 	}
-	defer conn.Close()
+	conn := connRaw.(*sql.Conn)
 	var req models.UpdateTweetRequest
 	user_id := c.Param("user_id")
 	tweet_id := c.Param("tweet_id")
@@ -143,7 +147,7 @@ func UpdateTweet(c *gin.Context, db *sql.DB) {
 		return
 	}
 
-	_, err = conn.ExecContext(c.Request.Context(), "update tweets SET body = ? where tweet_id = ? and user_id = ?;", req.Body, tweet_id, user_id)
+	_, err := conn.ExecContext(c.Request.Context(), "update tweets SET body = ? where tweet_id = ? and user_id = ?;", req.Body, tweet_id, user_id)
 	if err != nil {
 		log.Panic("ERROR_UPDATING_TWEET: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
@@ -153,17 +157,18 @@ func UpdateTweet(c *gin.Context, db *sql.DB) {
 	c.Status(http.StatusNoContent)
 }
 
-func DeleteTweet(c *gin.Context, db *sql.DB) {
+func DeleteTweet(c *gin.Context) {
 	// get db connection and release it when the transaction is complete
-	conn, err := dbHelper.GetDBConn(db)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB connection error"})
+	connRaw, exists := c.Get("conn")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB connection missing"})
 		return
 	}
-	defer conn.Close()
+	conn := connRaw.(*sql.Conn)
+
 	user_id := c.Param("user_id")
 	tweet_id := c.Param("tweet_id")
-	_, err = conn.ExecContext(c.Request.Context(), "delete from tweets where user_id = ? and tweet_id = ?;", user_id, tweet_id)
+	_, err := conn.ExecContext(c.Request.Context(), "delete from tweets where user_id = ? and tweet_id = ?;", user_id, tweet_id)
 	if err != nil {
 		log.Panic("ERROR_DELETING_TWEET_DATA: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
@@ -174,17 +179,18 @@ func DeleteTweet(c *gin.Context, db *sql.DB) {
 	c.Status(http.StatusNoContent)
 }
 
-func LikeTweet(c *gin.Context, db *sql.DB) {
+func LikeTweet(c *gin.Context) {
 	// get db connection and release it when the transaction is complete
-	conn, err := dbHelper.GetDBConn(db)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB connection error"})
+	connRaw, exists := c.Get("conn")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB connection missing"})
 		return
 	}
-	defer conn.Close()
+	conn := connRaw.(*sql.Conn)
+
 	user_id := c.Param("user_id")
 	tweet_id := c.Param("tweet_id")
-	_, err = conn.ExecContext(c.Request.Context(), "insert into likes_tweets (tweet_id, user_id) values (?,?);", tweet_id, user_id)
+	_, err := conn.ExecContext(c.Request.Context(), "insert into likes_tweets (tweet_id, user_id) values (?,?);", tweet_id, user_id)
 	if err != nil {
 		log.Panic("ERROR_LIKING_TWEET_DATA: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
@@ -195,17 +201,18 @@ func LikeTweet(c *gin.Context, db *sql.DB) {
 	c.Status(http.StatusNoContent)
 }
 
-func UnLikeTweet(c *gin.Context, db *sql.DB) {
+func UnLikeTweet(c *gin.Context) {
 	// get db connection and release it when the transaction is complete
-	conn, err := dbHelper.GetDBConn(db)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB connection error"})
+	connRaw, exists := c.Get("conn")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB connection missing"})
 		return
 	}
-	defer conn.Close()
+	conn := connRaw.(*sql.Conn)
+
 	user_id := c.Param("user_id")
 	tweet_id := c.Param("tweet_id")
-	_, err = conn.ExecContext(c.Request.Context(), "delete from likes_tweets where user_id = ? and tweet_id = ?;", user_id, tweet_id)
+	_, err := conn.ExecContext(c.Request.Context(), "delete from likes_tweets where user_id = ? and tweet_id = ?;", user_id, tweet_id)
 	if err != nil {
 		log.Panic("ERROR_DELETING_LIKE_DATA: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})

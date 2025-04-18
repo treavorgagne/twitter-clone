@@ -1,11 +1,12 @@
 package db
 
 import (
-	"context"
 	"database/sql"
 	"log"
+	"net/http"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 )
@@ -29,6 +30,15 @@ func ConfigDB() (*sql.DB) {
     return db
 }
 
-func GetDBConn(db *sql.DB) (*sql.Conn, error) {
-	return db.Conn(context.Background())
+func GetDBConn(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		conn, err := db.Conn(c) // new scoped connection
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "DB connection failed"})
+			return
+		}
+		c.Set("conn", conn)
+		defer conn.Close()
+		c.Next()
+	}
 }
