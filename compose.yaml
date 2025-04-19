@@ -1,0 +1,41 @@
+services:
+    mysql:
+        image: mysql:latest
+        container_name: twitter-clone-db
+        restart: always
+        environment:
+            - MYSQL_ROOT_PASSWORD=${DBPASS}
+            - MYSQL_DATABASE=twitter
+        ports:
+            - ${DBPORT}:3306
+        volumes:
+            - ./db/twitter.sql:/docker-entrypoint-initdb.d/twitter.sql
+        networks:
+            - tc-network
+
+    go-server:
+        image: go-server:0.0.1
+        container_name: twitter-clone-server
+        restart: always
+        env_file:
+            - .env
+        networks:
+            - tc-network
+        ports:
+            - ${SERVERPORT}:${SERVERPORT}
+        depends_on:
+            - mysql
+
+    redis:
+        image: redis:latest
+        container_name: twitter-clone-redis
+        restart: always
+        ports:
+            - ${REDISPORT}:${REDISPORT}
+        networks:
+            - tc-network
+
+networks:
+    tc-network:
+        external: true
+        driver: bridge
