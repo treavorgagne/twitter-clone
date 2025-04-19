@@ -14,7 +14,7 @@ services:
             - tc-network
 
     go-server:
-        image: go-server:0.0.1
+        image: go-server:latest
         container_name: twitter-clone-server
         restart: always
         env_file:

@@ -1,20 +1,20 @@
-FROM golang:1.24 AS base
+# Build Stage
+FROM golang:1.24 AS builder
 
-# Set working directory inside the container
 WORKDIR /build
-
-# Copy go.mod and go.sum, then download dependencies
 COPY go.mod go.sum ./
 RUN go mod download
-
-# Copy the source code into the container
 COPY . .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o go-server
 
-# Build the Go app
-RUN go build -o go-server
+# Final Stage
+FROM alpine:latest
 
-# Expose your server's port
+RUN apk add --no-cache ca-certificates
+
+WORKDIR /app
+COPY --from=builder /build/go-server .
+
 EXPOSE 8080
 
-# Run the binary when the container starts
 CMD ["./go-server"]
