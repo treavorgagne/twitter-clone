@@ -1,4 +1,4 @@
-package db
+package config
 
 import (
 	"database/sql"
@@ -8,19 +8,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
-	"github.com/joho/godotenv"
 )
 
 func ConfigDB() (*sql.DB) {
-	if godotenv.Load() != nil {
-		log.Fatal("Error loading .env file")
-	}
-
 	cfg := mysql.Config{
         User:   os.Getenv("DBUSER"),
         Passwd: os.Getenv("DBPASS"),
         Net:    "tcp",
-        Addr:   "127.0.0.1:3308",
+        Addr:   os.Getenv("DBADDRESS")+":"+os.Getenv("DBPORT"),
         DBName: "twitter",
     }
     var db, err = sql.Open("mysql", cfg.FormatDSN())

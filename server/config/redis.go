@@ -1,7 +1,8 @@
-package redis
+package config
 
 import (
 	"log"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -10,7 +11,7 @@ import (
 // CacheConn initializes and returns a Redis client
 func CacheConn() *redis.Client {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:4444",
+        Addr:   os.Getenv("REDISADDRESS")+":"+os.Getenv("REDISPORT"),
 		DB:       0, // optional: default DB
 	})
 	return rdb

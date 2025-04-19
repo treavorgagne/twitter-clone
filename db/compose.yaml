@@ -1,0 +1,12 @@
+services:
+    mysql:
+        image: mysql:latest
+        container_name: twitter-clone-db
+        restart: always
+        environment:
+            - MYSQL_ROOT_PASSWORD=${DBPASS}
+            - MYSQL_DATABASE=twitter
+        ports:
+            - ${DBPORT}:3306
+        volumes:
+            - ./twitter.sql:/docker-entrypoint-initdb.d/twitter.sql

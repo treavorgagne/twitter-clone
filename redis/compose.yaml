@@ -1,0 +1,6 @@
+services:
+    redis:
+        container_name: twitter-clone-redis
+        ports:
+            - ${REDISPORT}:${REDISPORT}
+        image: redis

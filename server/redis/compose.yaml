@@ -1,7 +1,0 @@
-name: tc_redis
-services:
-    redis:
-        container_name: my-redis
-        ports:
-            - 4444:6379
-        image: redis

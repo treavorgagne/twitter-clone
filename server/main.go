@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	dbHelper "github.com/treavorgagne/twitter-clone/server/db"
-	"github.com/treavorgagne/twitter-clone/server/redis"
+	"github.com/joho/godotenv"
+	"github.com/treavorgagne/twitter-clone/server/config"
 	"github.com/treavorgagne/twitter-clone/server/routes"
 )
 
@@ -15,7 +15,11 @@ func HealthCheck(c *gin.Context) {
 }
 
 func main() {
-	db := dbHelper.ConfigDB()
+	if godotenv.Load("../.env") != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	db := config.ConfigDB()
     defer db.Close()
     log.Println("db connection pool opened")
 
@@ -23,17 +27,17 @@ func main() {
     router.SetTrustedProxies(nil)
     log.Println("started gin router")
 
-    rdb := redis.CacheConn()
+    rdb := config.CacheConn()
     defer rdb.Close()
 
     // healh route
     router.GET("/health", HealthCheck);
 
     // check cache
-    router.Use(redis.CacheMiddleware(rdb))
+    router.Use(config.CacheMiddleware(rdb))
 
     // set new db connection
-    router.Use(dbHelper.GetDBConn(db))
+    router.Use(config.GetDBConn(db))
 
     // user routes
     router.POST("/users", routes.CreateUser)
