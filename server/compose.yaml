@@ -1,0 +1,15 @@
+services:
+    go-server:
+        image: go-server:0.0.1
+        container_name: twitter-clone-server
+        env_file:
+            - ../.env
+        networks:
+            - tc-network
+        ports:
+            - ${SERVERPORT}:${SERVERPORT}
+
+networks:
+    tc-network:
+        external: true
+        name: tc-network

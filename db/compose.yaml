@@ -10,3 +10,10 @@ services:
             - ${DBPORT}:3306
         volumes:
             - ./twitter.sql:/docker-entrypoint-initdb.d/twitter.sql
+        networks:
+            - tc-network
+
+networks:
+    tc-network:
+        external: true
+        name: tc-network

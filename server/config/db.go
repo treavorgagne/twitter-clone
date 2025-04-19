@@ -10,20 +10,32 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-func ConfigDB() (*sql.DB) {
-	cfg := mysql.Config{
-        User:   os.Getenv("DBUSER"),
+func ConfigDB() *sql.DB {
+    dbAddress := os.Getenv("DBADDRESS")
+    dbUser := os.Getenv("DBUSER")
+	log.Println(dbAddress, dbUser)
+
+    cfg := mysql.Config{
+        User:   dbUser,
         Passwd: os.Getenv("DBPASS"),
         Net:    "tcp",
-        Addr:   os.Getenv("DBADDRESS")+":"+os.Getenv("DBPORT"),
+        Addr:   dbAddress + ":3306",
         DBName: "twitter",
     }
-    var db, err = sql.Open("mysql", cfg.FormatDSN())
+
+    db, err := sql.Open("mysql", cfg.FormatDSN())
     if err != nil {
-		log.Fatal("DB_CONNECTION_FAILED", "unable to get database connection")
-	}
+        log.Fatalf("DB_CONNECTION_FAILED: unable to open database connection: %v", err)
+    }
+
+    if err := db.Ping(); err != nil {
+        log.Fatalf("DB_CONNECTION_FAILED: unable to ping database at %s: %v", cfg.Addr, err)
+    }
+
+    log.Println("Database connection established to", cfg.Addr)
     return db
 }
+
 
 func GetDBConn(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {

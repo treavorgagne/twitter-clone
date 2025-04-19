@@ -2,47 +2,83 @@
 MVP dockerized twitter-clone.
 
 ## Stack
-- client Next.js using React.js
-- restful go api
-- db mysql
-- redis cache
+- client -> TBD
+- server -> go (rest api)
+- db -> mysql
+- cache -> redis
 
 ## Deployment
-Here are the commands in order to run each component of this project. 
+Complete the following instructions listed below: 
 
-### .env setup
-Create a `.env` file with the following keys needed for the `compose.yaml` and go files in the root directory of the project.
+1) [Download Launch Dependencies](#download-launch-dependencies)
+2) [Pre Launch Steps](#pre-launch-steps)
+3) [Launch Steps](#launch-steps)
+
+----
+### Download Launch Dependencies
+These must be downloaded
+- [go](https://go.dev/doc/install)
+- [docker](https://docs.docker.com/get-started/get-docker/)
+
+### Pre Launch Steps
+
+#### Clone project repo
+Run the following from the directory you want you the project to stored:
+```bash
+git clone https://github.com/treavorgagne/twitter-clone.git
+``` 
+
+#### Create Docker Network
+Run the following docker cmd:
+```bash
+docker network create tc-network
+```
+
+#### Create .env file
+Create a `.env` file in the root directory of the project.
 
 ```yaml
-DBUSER=
-DBPASS=
-DBADDRESS=
-DBPORT=
-REDISPORT=
-REDISADDRESS=
+DBUSER=<USER>
+DBPASS=<PASSWD>
+DBADDRESS=twitter-clone-db
+DBPORT=3308
+REDISPORT=6379
+REDISADDRESS=redis
+SERVERPORT=8080
 ```
-----
-### Docker MySQL Database
-Run the following docker compose file from the `server` directory. 
+
+### Launch Steps
+Excute the following steps after downloading dependencies, cloning repo, and create docker network:
+
+#### Step 1: Containerized MySQL Database
+Execute db docker compose file from the project root directory:
 
 ```bash
-docker compose -f ./db/compose.yaml --env-file .env up
+# starts mysql db container using compose file
+docker compose -f ./db/compose.yaml --env-file .env up -d 
 ```
+
 ----
-### Redis Cache
-Run the following docker compose file from the `server` directory. 
+#### Step 2: Containerized Go Server
+Execute go server docker compose file from the project root directory:
 
 ```bash
-docker compose -f ./redis/compose.yaml --env-file .env up
+# build go server binary and container image
+cd server && go mod download && go build -o go-server && docker build . -t go-server:0.0.1 && cd ..
+# starts server container from the image we just built
+docker compose -f ./server/compose.yaml --env-file .env up -d 
+```
+
+----
+#### Step 3: Containerized Redis Cache (optional)
+Execute redis docker compose file from the project root directory:
+
+```bash
+# starts redis cache container using compose file
+docker compose -f ./redis/compose.yaml --env-file .env up -d 
 ```
 This is used to cache `GET` requests to the go server.
-----
-### Server
-With `go` installed and cd into `server` directory. Then run the follwing to start the server:
 
-```
-go run main.go
-```
 ----
-### Client
-----
+
+

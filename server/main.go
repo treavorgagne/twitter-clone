@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"github.com/treavorgagne/twitter-clone/server/config"
 	"github.com/treavorgagne/twitter-clone/server/routes"
 )
@@ -15,10 +15,6 @@ func HealthCheck(c *gin.Context) {
 }
 
 func main() {
-	if godotenv.Load("../.env") != nil {
-		log.Fatal("Error loading .env file")
-	}
-
 	db := config.ConfigDB()
     defer db.Close()
     log.Println("db connection pool opened")
@@ -67,5 +63,5 @@ func main() {
     router.POST("/users/:user_id/comment/:comment_id/like", routes.LikeComment);
     router.DELETE("/users/:user_id/comment/:comment_id/unlike", routes.UnLikeComment);
 
-    router.Run("localhost:8080")
+    router.Run("0.0.0.0:" + os.Getenv("SERVERPORT"))
 }
